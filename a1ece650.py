@@ -7,16 +7,16 @@ import sys
 class Vertex:
 
     def __init__(self, x, y):
-        self.x = x
+        self.x = float(x)
 
-        self.y = y
+        self.y = float(y)
 
         self.id = -1
 
         self.intersect = False
 
     def __str__(self):
-        return '  %s:\t(%i,%i)' % (self.id, self.x, self.y)
+        return '  %s:\t(%.2f,%.2f)' % (self.id, self.x, self.y)
 
     def __hash__(self):
         return ('x:%s,y:%s' % (self.x, self.y)).__hash__()
@@ -39,8 +39,10 @@ class Line:
         return self.__str__().__hash__()
 
     def __eq__(self, other):
-        return self.start == other.start and \
-               self.end == other.end
+        return self.start == other.start and self.end == other.end
+
+    def __ne__(self, other):
+        return self.start != other.start or self.end != other.end
 
 
 class Street:
@@ -152,7 +154,8 @@ class Graph:
 
     def addStreet(self, arg):
 
-        pattern = r'a \"(.+?)\"(( ?\(\-?\d+,\-?\d+\))+)\s*$'
+        # pattern = r'c \"(.+?)\"(( ?\(\-?\d+,\-?\d+\))+)\s*$'
+        pattern = r'a\s+\"(.+?)\"(( ?\(\-?\d+,\-?\d+\))+)\s*$'
 
         match = re.match(pattern, arg)
 
@@ -166,6 +169,7 @@ class Graph:
                     return
 
             if streetName in self.street:
+                print("Error: street already exist!")
                 return
 
             vertexList = re.compile(r'\((\-?\d+),(\-?\d+)\)').findall(str(match.group(2)).strip())
@@ -185,7 +189,8 @@ class Graph:
 
     def changeStreet(self, arg):
 
-        pattern = r'c \"(.+?)\"(( ?\(\-?\d+,\-?\d+\))+)\s*$'
+        # pattern = r'c \"(.+?)\"(( ?\(\-?\d+,\-?\d+\))+)\s*$'
+        pattern = r'c\s+\"(.+?)\"(( ?\(\-?\d+,\-?\d+\))+)\s*$'
 
         match = re.match(pattern, arg)
 
@@ -257,10 +262,17 @@ class Graph:
                 for s1l in s1.line:
                     for s2l in s2.line:
                         inter = calcIntersection(s1l, s2l)
+                        cover = calcCover(s1l,s2l)
                         if inter:
                             inter.intersect = True
                             s1.addPointToLine(s1l, inter)
                             s2.addPointToLine(s2l, inter)
+                        elif cover:
+                            s1.addPointToLine(s1l, s2l.start)
+                            s1.addPointToLine(s1l, s2l.end)
+                            s2.addPointToLine(s1l, s1l.start)
+                            s2.addPointToLine(s1l, s1l.end)
+
 
         for i in range(len(streetName)):
             st = tempGraph.street[streetName[i]]
@@ -331,6 +343,23 @@ def calcIntersection(line1, line2):
 
     return None
 
+def calcCover(line1, line2):
+    l1 = InterLine(line1)
+
+    l2 = InterLine(line2)
+
+    D = l1.a * l2.b - l2.a * l1.b
+
+    if D == 0:
+        line3 = Line(line1.start, line2.start)
+        l3 = InterLine(line3);
+
+        DD = l1.a * l3.b - l3.a * l1.b
+
+        if DD == 0:
+            return True
+
+    return False
 
 idList = {}
 
